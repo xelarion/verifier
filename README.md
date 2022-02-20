@@ -1,4 +1,5 @@
 # verifier
+
 Golang JWT token verifier with storage(default Redis)
 
 ## Usage
@@ -28,6 +29,7 @@ func main() {
 		"your key",
 		&tokenStorage,
 		// options
+		verifier.WithSourceName("user"),                   // default "user"
 		verifier.WithTokenExpireDuration(10*time.Minute),  // default 15 minutes
 		verifier.WithAuthExpireDuration(2*time.Hour),      // default 3 hours
 		verifier.WithTempTokenExpireDuration(time.Minute), // default 30 seconds
@@ -40,8 +42,8 @@ func main() {
 	//	verifier.WithTempTokenExpireDuration(time.Minute),
 	//)
 
-	var userId uint = 1
-	token, err := verifier.CreateToken(userId, map[string]interface{}{"foo": "bar"})
+	var sourceId uint = 1
+	token, err := verifier.CreateToken(sourceId, map[string]interface{}{"foo": "bar"})
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -61,20 +63,20 @@ func main() {
 	fmt.Println(claims)
 	fmt.Println(isAuthorized)
 
-	// destroy token by userId and uuid
-	err = verifier.DestroyToken(userId, claims.Uuid)
+	// destroy token by sourceId and uuid
+	err = verifier.DestroyToken(sourceId, claims.Uuid)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	// destroy all token of userId
-	err = verifier.DestroyAllToken(userId)
+	// destroy all token of sourceId
+	err = verifier.DestroyAllToken(sourceId)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	// refresh token manually
-	newToken, err = verifier.RefreshToken(claims.UserId, claims.Uuid, claims.Data)
+	newToken, err = verifier.RefreshToken(claims.SourceId, claims.Uuid, claims.Data)
 	if err != nil {
 		fmt.Println(err)
 	}

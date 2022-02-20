@@ -14,8 +14,8 @@ token 生成和验证逻辑:
 实现效果: 无操作后 3 小时自动退出，token 每 15 分钟刷新一次
 
 token 生成逻辑:
-	根据 userId 和 uuid 生成，token 过期时间为 15 分钟
-	并以 userId 和 uuid 组合 为 key(keyA), token 为值 记录到存储器, 过期时间设置为 3 小时
+	根据 sourceId 和 uuid 生成，token 过期时间为 15 分钟
+	并以 sourceId 和 uuid 组合 为 key(keyA), token 为值 记录到存储器, 过期时间设置为 3 小时
 
 验证 token 逻辑:
 	大前提: keyA 存在于存储器, 不存在则不通过验证
@@ -34,6 +34,7 @@ type Verifier struct {
 	jwtKey      string           // jwt sign key
 	jwtTimeFunc func() time.Time // jwt TimeFunc
 
+	sourceName              string        // 指定 source, 用于区分不同资源登录, 影响 key, 如: user, admin, account, 默认为 user
 	tokenExpireDuration     time.Duration // token 过期时长(在身份过期内，会自动刷新 token)
 	authExpireDuration      time.Duration // 身份过期时长
 	tempTokenExpireDuration time.Duration // 旧 token 临时保存过期时长
@@ -46,6 +47,7 @@ func New(jwtKey string, tokenStorage TokenStorage, options ...Option) *Verifier 
 		jwtKey:      jwtKey,
 		jwtTimeFunc: time.Now,
 
+		sourceName:              "user",
 		tokenExpireDuration:     15 * time.Minute,
 		authExpireDuration:      3 * time.Hour,
 		tempTokenExpireDuration: 30 * time.Second,
@@ -75,16 +77,16 @@ func (v *Verifier) IsTokenAuthorized(tokenStr string) (CustomClaims, bool) {
 
 // CreateToken 创建新 token
 // data 为自定义数据
-func (v *Verifier) CreateToken(userId uint, data map[string]interface{}) (string, error) {
+func (v *Verifier) CreateToken(sourceId uint, data map[string]interface{}) (string, error) {
 	uid := uuid.NewV4().String()
-	tokenStr, err := v.generateToken(userId, uid, data)
+	tokenStr, err := v.generateToken(sourceId, uid, data)
 	if err != nil {
 		return "", err
 	}
 
-	// userId 和 uuid 组合, 记录到存储器(允许同一账号多次登录)
+	// sourceId 和 uuid 组合, 记录到存储器(允许同一账号多次登录)
 	if err = v.tokenStorage.Set(
-		v.tokenStorageKey(userId, uid),
+		v.tokenStorageKey(sourceId, uid),
 		tokenStr,
 		v.authExpireDuration,
 	); err != nil {
@@ -94,17 +96,17 @@ func (v *Verifier) CreateToken(userId uint, data map[string]interface{}) (string
 	return tokenStr, nil
 }
 
-// RefreshToken 刷新 token (根据原有的 userId 和 uuid)
+// RefreshToken 刷新 token (根据原有的 sourceId 和 uuid)
 // data 为自定义数据
-func (v *Verifier) RefreshToken(userId uint, uid string, data map[string]interface{}) (string, error) {
-	tokenStr, err := v.generateToken(userId, uid, data)
+func (v *Verifier) RefreshToken(sourceId uint, uid string, data map[string]interface{}) (string, error) {
+	tokenStr, err := v.generateToken(sourceId, uid, data)
 	if err != nil {
 		return "", err
 	}
 
-	// userId 和 uuid 组合, 记录到存储器
+	// sourceId 和 uuid 组合, 记录到存储器
 	if err = v.tokenStorage.Set(
-		v.tokenStorageKey(userId, uid),
+		v.tokenStorageKey(sourceId, uid),
 		tokenStr,
 		v.authExpireDuration,
 	); err != nil {
@@ -115,13 +117,13 @@ func (v *Verifier) RefreshToken(userId uint, uid string, data map[string]interfa
 }
 
 // DestroyToken 销毁 token
-func (v *Verifier) DestroyToken(userId uint, uid string) error {
-	return v.tokenStorage.Del(v.tokenStorageKey(userId, uid))
+func (v *Verifier) DestroyToken(sourceId uint, uid string) error {
+	return v.tokenStorage.Del(v.tokenStorageKey(sourceId, uid))
 }
 
-// DestroyAllToken 销毁 userId 的所有 token
-func (v *Verifier) DestroyAllToken(userId uint) error {
-	return v.tokenStorage.DelByKeyPrefix(v.tokenStorageKeyUserIdFilterPrefix(userId))
+// DestroyAllToken 销毁 sourceId 的所有 token
+func (v *Verifier) DestroyAllToken(sourceId uint) error {
+	return v.tokenStorage.DelByKeyPrefix(v.tokenStorageKeySourceIdFilterPrefix(sourceId))
 }
 
 // 验证 token
@@ -143,7 +145,7 @@ func (v *Verifier) verifyToken(tokenStr string, isRefreshToken bool) (CustomClai
 	}
 
 	// 从存储器中获取 token
-	storageTokenStr, getStorageErr = v.tokenStorage.Get(v.tokenStorageKey(claims.UserId, claims.Uuid))
+	storageTokenStr, getStorageErr = v.tokenStorage.Get(v.tokenStorageKey(claims.SourceId, claims.Uuid))
 	if getStorageErr != nil {
 		return CustomClaims{}, "", TokenInvalidError
 	}
@@ -156,7 +158,7 @@ func (v *Verifier) verifyToken(tokenStr string, isRefreshToken bool) (CustomClai
 				// 将旧的过期 token 保存到存储器中过渡(并发时可能多个请求携带旧 token)
 				if isRefreshToken && v.tokenStorage.SetNX(tokenStr, "1", v.tempTokenExpireDuration) {
 					// 刷新 token, 并返回
-					newTokenStr, err := v.RefreshToken(claims.UserId, claims.Uuid, claims.Data)
+					newTokenStr, err := v.RefreshToken(claims.SourceId, claims.Uuid, claims.Data)
 					if err != nil {
 						return CustomClaims{}, "", TokenInvalidError
 					}
@@ -186,13 +188,13 @@ func (v *Verifier) verifyToken(tokenStr string, isRefreshToken bool) (CustomClai
 }
 
 // token 存储的 key
-func (v *Verifier) tokenStorageKey(userId uint, uid string) string {
-	return fmt.Sprintf("verifier:user_id:%d:uid:%s", userId, uid)
+func (v *Verifier) tokenStorageKey(sourceId uint, uid string) string {
+	return fmt.Sprintf("verifier:%v:%d:uid:%s", v.sourceName, sourceId, uid)
 }
 
-//  token 存储的 key 中的 userId 前缀, 用于过滤 userId 的所有 key
-func (v *Verifier) tokenStorageKeyUserIdFilterPrefix(userId uint) string {
-	return fmt.Sprintf("verifier:user_id:%d:uid:", userId)
+//  token 存储的 key 中的 sourceId 前缀, 用于过滤 sourceId 的所有 key
+func (v *Verifier) tokenStorageKeySourceIdFilterPrefix(sourceId uint) string {
+	return fmt.Sprintf("verifier:%v:%d:uid:", v.sourceName, sourceId)
 }
 
 func (v *Verifier) jwtTokenKeyFunc() jwt.Keyfunc {
@@ -203,14 +205,14 @@ func (v *Verifier) jwtTokenKeyFunc() jwt.Keyfunc {
 
 // 生成token
 // data 为自定义数据
-func (v *Verifier) generateToken(userId uint, uid string, data map[string]interface{}) (string, error) {
+func (v *Verifier) generateToken(sourceId uint, uid string, data map[string]interface{}) (string, error) {
 	claims := CustomClaims{
 		StandardClaims: &jwt.StandardClaims{
 			ExpiresAt: v.jwtTimeFunc().Add(v.tokenExpireDuration).Unix(),
 		},
-		UserId: userId,
-		Uuid:   uid,
-		Data:   data,
+		SourceId: sourceId,
+		Uuid:     uid,
+		Data:     data,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(v.jwtKey))

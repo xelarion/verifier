@@ -26,6 +26,13 @@ func WithJwtTimeFunc(timeFunc func() time.Time) Option {
 	})
 }
 
+// WithSourceName can be used to set sourceName.
+func WithSourceName(sourceName string) Option {
+	return OptionFunc(func(v *Verifier) {
+		v.sourceName = sourceName
+	})
+}
+
 // WithTokenExpireDuration can be used to set tokenExpireDuration.
 func WithTokenExpireDuration(duration time.Duration) Option {
 	return OptionFunc(func(v *Verifier) {
