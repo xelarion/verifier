@@ -1,6 +1,9 @@
 # verifier
 
-Golang JWT token verifier with storage(default Redis)
+Golang JWT token verifier with storage
+
+You can use [github.com/xandercheung/verifier-redis-storage](https://github.com/xandercheung/verifier-redis-storage) as token storage,
+or create new storage to implement `TokenStorage` interface
 
 ## Usage
 
@@ -8,7 +11,7 @@ Golang JWT token verifier with storage(default Redis)
 go get -u github.com/xandercheung/verifier
 ```
 
-#### Find example in `github.com/xandercheung/verifier/verifier/example/verifier_example.go`
+#### Find example in [example/verifier_example.go](./example/verifier_example.go)
 
 ```go
 package main
