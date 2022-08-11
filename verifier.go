@@ -2,9 +2,10 @@ package verifier
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/dgrijalva/jwt-go"
 	uuid "github.com/satori/go.uuid"
-	"time"
 )
 
 // Verifier token 验证器
@@ -77,7 +78,7 @@ func (v *Verifier) IsTokenAuthorized(tokenStr string) (CustomClaims, bool) {
 
 // CreateToken 创建新 token
 // data 为自定义数据
-func (v *Verifier) CreateToken(sourceId uint, data map[string]interface{}) (string, error) {
+func (v *Verifier) CreateToken(sourceId SourceId, data map[string]interface{}) (string, error) {
 	uid := uuid.NewV4().String()
 	tokenStr, err := v.generateToken(sourceId, uid, data)
 	if err != nil {
@@ -98,7 +99,7 @@ func (v *Verifier) CreateToken(sourceId uint, data map[string]interface{}) (stri
 
 // RefreshToken 刷新 token (根据原有的 sourceId 和 uuid)
 // data 为自定义数据
-func (v *Verifier) RefreshToken(sourceId uint, uid string, data map[string]interface{}) (string, error) {
+func (v *Verifier) RefreshToken(sourceId SourceId, uid string, data map[string]interface{}) (string, error) {
 	tokenStr, err := v.generateToken(sourceId, uid, data)
 	if err != nil {
 		return "", err
@@ -117,12 +118,12 @@ func (v *Verifier) RefreshToken(sourceId uint, uid string, data map[string]inter
 }
 
 // DestroyToken 销毁 token
-func (v *Verifier) DestroyToken(sourceId uint, uid string) error {
+func (v *Verifier) DestroyToken(sourceId SourceId, uid string) error {
 	return v.tokenStorage.Del(v.tokenStorageKey(sourceId, uid))
 }
 
 // DestroyAllToken 销毁 sourceId 的所有 token
-func (v *Verifier) DestroyAllToken(sourceId uint) error {
+func (v *Verifier) DestroyAllToken(sourceId SourceId) error {
 	return v.tokenStorage.DelByKeyPrefix(v.tokenStorageKeySourceIdFilterPrefix(sourceId))
 }
 
@@ -188,13 +189,13 @@ func (v *Verifier) verifyToken(tokenStr string, isRefreshToken bool) (CustomClai
 }
 
 // token 存储的 key
-func (v *Verifier) tokenStorageKey(sourceId uint, uid string) string {
-	return fmt.Sprintf("verifier:%v:%d:uid:%s", v.sourceName, sourceId, uid)
+func (v *Verifier) tokenStorageKey(sourceId SourceId, uid string) string {
+	return fmt.Sprintf("verifier:%v:%v:uid:%s", v.sourceName, sourceId, uid)
 }
 
 //  token 存储的 key 中的 sourceId 前缀, 用于过滤 sourceId 的所有 key
-func (v *Verifier) tokenStorageKeySourceIdFilterPrefix(sourceId uint) string {
-	return fmt.Sprintf("verifier:%v:%d:uid:", v.sourceName, sourceId)
+func (v *Verifier) tokenStorageKeySourceIdFilterPrefix(sourceId SourceId) string {
+	return fmt.Sprintf("verifier:%v:%v:uid:", v.sourceName, sourceId)
 }
 
 func (v *Verifier) jwtTokenKeyFunc() jwt.Keyfunc {
@@ -205,7 +206,7 @@ func (v *Verifier) jwtTokenKeyFunc() jwt.Keyfunc {
 
 // 生成token
 // data 为自定义数据
-func (v *Verifier) generateToken(sourceId uint, uid string, data map[string]interface{}) (string, error) {
+func (v *Verifier) generateToken(sourceId SourceId, uid string, data map[string]interface{}) (string, error) {
 	claims := CustomClaims{
 		StandardClaims: &jwt.StandardClaims{
 			ExpiresAt: v.jwtTimeFunc().Add(v.tokenExpireDuration).Unix(),
