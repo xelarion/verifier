@@ -25,22 +25,22 @@ func IsTokenAuthorized(tokenStr string) (CustomClaims, bool) {
 
 // CreateToken 创建新 token
 // data 为自定义数据
-func CreateToken(sourceId uint, data map[string]interface{}) (string, error) {
+func CreateToken(sourceId SourceId, data map[string]interface{}) (string, error) {
 	return defaultVerifier.CreateToken(sourceId, data)
 }
 
 // RefreshToken 刷新 token (根据原有的 sourceId 和 uuid)
 // data 为自定义数据
-func RefreshToken(sourceId uint, uid string, data map[string]interface{}) (string, error) {
+func RefreshToken(sourceId SourceId, uid string, data map[string]interface{}) (string, error) {
 	return defaultVerifier.RefreshToken(sourceId, uid, data)
 }
 
 // DestroyToken 销毁 token
-func DestroyToken(sourceId uint, uid string) error {
+func DestroyToken(sourceId SourceId, uid string) error {
 	return defaultVerifier.DestroyToken(sourceId, uid)
 }
 
 // DestroyAllToken 销毁 sourceId 的所有 token
-func DestroyAllToken(sourceId uint) error {
+func DestroyAllToken(sourceId SourceId) error {
 	return defaultVerifier.DestroyAllToken(sourceId)
 }
