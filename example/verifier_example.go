@@ -1,16 +1,3 @@
-# verifier
-
-Golang JWT token verifier with storage(default Redis)
-
-## Usage
-
-```shell
-go get -u github.com/xandercheung/verifier
-```
-
-#### Find example in `github.com/xandercheung/verifier/verifier/example/verifier_example.go`
-
-```go
 package main
 
 import (
@@ -88,5 +75,3 @@ func main() {
 	}
 	fmt.Println(newToken)
 }
-
-```
