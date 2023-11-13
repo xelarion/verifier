@@ -1,4 +1,4 @@
-module github.com/xandercheung/verifier
+module github.com/noahcode/verifier
 
 go 1.18
 
