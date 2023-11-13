@@ -1,11 +1,9 @@
 module github.com/xandercheung/verifier
 
-go 1.17
+go 1.18
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/satori/go.uuid v1.2.0
-	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
+	github.com/golang-jwt/jwt/v5 v5.1.0
+	github.com/google/uuid v1.4.0
+	golang.org/x/crypto v0.15.0
 )
-
-require gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 // indirect
