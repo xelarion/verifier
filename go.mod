@@ -1,6 +1,6 @@
-module github.com/NoahCodeGG/verifier
+module github.com/xandercheung/verifier
 
-go 1.18
+go 1.17
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.1.0
