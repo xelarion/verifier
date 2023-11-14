@@ -1,4 +1,4 @@
-module github.com/noahcode/verifier
+module github.com/NoahCodeGG/verifier
 
 go 1.18
 
