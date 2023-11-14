@@ -1,18 +1,3 @@
-# verifier
-
-Golang JWT token verifier with storage
-
-You can use [github.com/xandercheung/verifier-redis-storage](https://github.com/xandercheung/verifier-redis-storage) as token storage,
-or create new storage to implement `TokenStorage` interface
-
-## Usage
-
-```shell
-go get -u github.com/NoahCodeGG/verifier
-```
-#### Find example in [example/verifier_example.go](./example/verifier_example.go)
-
-```go
 package main
 
 import (
@@ -25,8 +10,8 @@ import (
 )
 
 func main() {
-	// you can create new TokenStorage
 	// use github.com/xandercheung/verifier-redis-storage(github.com/go-redis/redis/v8) as token storage,
+	// you can create new TokenStorage
 	// init your redisClient
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
@@ -94,4 +79,3 @@ func main() {
 	}
 	fmt.Println(newToken)
 }
-```
