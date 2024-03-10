@@ -3,7 +3,7 @@ package verifier
 import (
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // An Option configures a verifier.
@@ -23,7 +23,7 @@ func (f OptionFunc) Apply(verifier *Verifier) {
 func WithJwtTimeFunc(timeFunc func() time.Time) Option {
 	return OptionFunc(func(v *Verifier) {
 		v.jwtTimeFunc = timeFunc
-		jwt.TimeFunc = timeFunc
+		jwt.WithTimeFunc(timeFunc)
 	})
 }
 

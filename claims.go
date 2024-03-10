@@ -1,16 +1,14 @@
 package verifier
 
-import "github.com/dgrijalva/jwt-go"
+import "github.com/golang-jwt/jwt/v5"
 
 type CustomClaims struct {
-	*jwt.StandardClaims
-	SourceId SourceId
-	Uuid     string                 // source_id 与 随机 uuid 组合，允许同一账号多次登录
+	*jwt.RegisteredClaims
+	SourceID any
+	UUID     string                 // source_id 与 随机 uuid 组合，允许同一账号多次登录
 	Data     map[string]interface{} // 自定义数据
 }
 
-type SourceId interface{}
-
 func (c *CustomClaims) IsParamsValid() bool {
-	return c.SourceId != nil && len(c.Uuid) > 0
+	return c.SourceID != nil && len(c.UUID) > 0
 }
